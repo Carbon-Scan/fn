@@ -4,64 +4,112 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts"
 
 import TopBar from "@/components/top-bar"
 import Card from "@/components/card"
 
-const COLORS = ["#22C55E", "#F59E0B", "#EF4444"]
+const COLORS = ["#EF4444", "#F59E0B", "#22C55E"]
 
 export default function DashboardPage() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
-  const [data, setData] = useState<any>(null)
+  const userEmail = session?.user?.email
 
+  const [totalEmisi, setTotalEmisi] = useState(0)
+  const [monthlyEmissionData, setMonthlyEmissionData] = useState<any[]>([])
+  const [categoryEmissionData, setCategoryEmissionData] = useState<any[]>([])
+
+  // proteksi
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
-    if (status !== "authenticated") return
+  }, [status, router])
 
-    fetch("/api/dashboard", { credentials: "include" })
-      .then((r) => r.json())
-      .then(setData)
-  }, [status])
+  // fetch dashboard per user
+  useEffect(() => {
+    if (status !== "authenticated" || !userEmail) return
 
-  if (!data) return null
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch("/api/dashboard", {
+          credentials: "include",
+        })
+        if (!res.ok) return
+
+        const data = await res.json()
+        setTotalEmisi(data.totalEmisi || 0)
+        setMonthlyEmissionData(data.monthlyEmissionData || [])
+        setCategoryEmissionData(data.categoryEmissionData || [])
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    fetchDashboard()
+  }, [status, userEmail])
+
+  if (status === "loading") return <div className="p-6">Loading...</div>
+  if (status === "unauthenticated") return null
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="min-h-screen bg-background flex flex-col">
       <TopBar />
 
-      <Card className="p-6">
-        <h3>Total Emisi</h3>
-        <div className="text-4xl">{data.totalEmisi} kg CO₂</div>
-      </Card>
+      <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <Card className="rounded-3xl p-6">
+            <h3 className="text-sm mb-2">Total Emisi Bulan Ini</h3>
+            <div className="text-4xl font-bold text-blue-600">
+              {totalEmisi.toLocaleString()} kg CO₂
+            </div>
+          </Card>
 
-      <Card className="p-6 mt-4">
-        <ResponsiveContainer height={250}>
-          <LineChart data={data.monthlyEmissionData}>
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Line dataKey="emisi" stroke="#22C55E" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
-      </Card>
+          <Card className="rounded-3xl p-6">
+            <h3 className="text-lg mb-4">Tren Emisi Bulanan</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={monthlyEmissionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="emisi"
+                  stroke="#1A6B41"
+                  strokeWidth={3}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
 
-      <Card className="p-6 mt-4">
-        <ResponsiveContainer height={300}>
-          <PieChart>
-            <Pie data={data.categoryEmissionData} dataKey="value">
-              {data.categoryEmissionData.map((_: any, i: number) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </Card>
+          <Card className="rounded-3xl p-6">
+            <h3 className="text-lg mb-4">Emisi per Kategori</h3>
+            <ResponsiveContainer width="100%" height={320}>
+              <PieChart>
+                <Legend />
+                <Pie data={categoryEmissionData} dataKey="value" outerRadius={110}>
+                  {categoryEmissionData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      </main>
     </div>
   )
 }

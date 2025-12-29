@@ -62,7 +62,7 @@ export default function UploadPage() {
     })
 
     setLoading(false)
-    alert("Data tersimpan & terakumulasi")
+    alert("Data tersimpan & terakumulasi ")
   }
 
   if (status !== "authenticated") return null
