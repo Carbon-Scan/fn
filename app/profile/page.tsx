@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { User, Eye, EyeOff } from "lucide-react"
 
@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function ProfilePage() {
-  /* ================= HOOKS ================= */
   const { data: session, status } = useSession()
 
   const [isEditing, setIsEditing] = useState(false)
@@ -22,32 +21,24 @@ export default function ProfilePage() {
     session?.user?.image ||
     "https://api.dicebear.com/7.x/avataaars/svg?seed=user"
 
-  // Nama default dari email
-  const displayName =
-    email !== "-" ? email.split("@")[0] : "Pengguna"
+  const displayName = email !== "-" ? email.split("@")[0] : "Pengguna"
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
 
-  /* ================= FETCH PROFILE ================= */
+  /* ================= FETCH PROFILE (NO TOKEN) ================= */
   useEffect(() => {
-    if (!session?.accessToken) return
+    if (!session) return
 
-    fetch("/api/me", {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    })
+    fetch("/api/me")
       .then((res) => res.json())
       .then((data) => {
         if (data?.name) setUsername(data.name)
       })
-      .catch(() => {
-        console.error("Gagal mengambil profil")
-      })
+      .catch(() => console.error("Gagal mengambil profil"))
   }, [session])
 
-  /* ================= CONDITIONAL ================= */
+  /* ================= GUARD ================= */
   if (status === "loading") {
     return <p className="p-4 text-center">Memuat...</p>
   }
@@ -65,9 +56,11 @@ export default function ProfilePage() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
       },
-      body: JSON.stringify({ name: username, password }),
+      body: JSON.stringify({
+        name: username,
+        password,
+      }),
     })
 
     setIsEditing(false)
@@ -102,9 +95,24 @@ export default function ProfilePage() {
             <p className="text-muted-foreground">{email}</p>
           </div>
 
+          {/* LINK GOOGLE ACCOUNT */}
+          <div className="mb-6">
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-3 rounded-full"
+              onClick={() => signIn("google")}
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                className="w-5 h-5"
+                alt="Google"
+              />
+              Hubungkan akun Google
+            </Button>
+          </div>
+
           {/* FORM */}
           <div className="space-y-5">
-            {/* USERNAME */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Username</label>
               <Input
@@ -114,13 +122,11 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* EMAIL */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
               <Input value={email} disabled />
             </div>
 
-            {/* PASSWORD */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Password</label>
               <div className="relative">
@@ -146,9 +152,11 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* ACTION BUTTONS */}
         {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)} className="w-full rounded-full">
+          <Button
+            onClick={() => setIsEditing(true)}
+            className="w-full rounded-full"
+          >
             Edit Profil
           </Button>
         ) : (
