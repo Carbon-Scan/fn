@@ -38,12 +38,7 @@ export default function DashboardPage() {
     if (status !== "authenticated") return
 
     const fetchDashboard = async () => {
-      const API = process.env.NEXT_PUBLIC_API_URL
-      if (!API) return
-
-      const res = await fetch(`${API}/api/dashboard`, {
-        credentials: "include",
-      })
+      const res = await fetch("/api/dashboard") 
       if (!res.ok) return
 
       const data = await res.json()
@@ -64,6 +59,7 @@ export default function DashboardPage() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+
           <Card className="rounded-3xl p-6">
             <h3 className="text-sm mb-2">Total Emisi Bulan Ini</h3>
             <div className="text-4xl font-bold text-blue-600">
@@ -103,6 +99,7 @@ export default function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           </Card>
+
         </div>
       </main>
     </div>
