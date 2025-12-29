@@ -47,9 +47,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#DFF5E3] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-4xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-center mb-6">Daftar</h2>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-100 to-green-200 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
+        <h2 className="text-2xl font-bold text-center mb-2">
+          Buat Akun Baru ✨
+        </h2>
+        <p className="text-center text-gray-500 mb-6">
+          Daftar untuk mulai menggunakan aplikasi
+        </p>
 
         <form onSubmit={handleRegister} className="space-y-4">
           <Input
@@ -58,6 +63,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="rounded-xl"
           />
 
           <div className="relative">
@@ -67,36 +73,37 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="rounded-xl pr-12"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
             >
-              {showPassword ? <EyeOff /> : <Eye />}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
             <Checkbox
               checked={agree}
               onCheckedChange={(v) => setAgree(v === true)}
             />
-            Setuju syarat & ketentuan
+            Saya setuju dengan syarat & ketentuan
           </label>
 
           <Button
             type="submit"
             disabled={!agree || isLoading}
-            className="w-full"
+            className="w-full rounded-xl"
           >
             {isLoading ? "Memproses..." : "Daftar"}
           </Button>
         </form>
 
-        <p className="text-center text-sm mt-4">
+        <p className="text-center text-sm text-gray-600 mt-6">
           Sudah punya akun?{" "}
-          <Link href="/login" className="text-primary underline">
+          <Link href="/login" className="text-emerald-600 font-medium underline">
             Login
           </Link>
         </p>

@@ -23,32 +23,42 @@ import Card from "@/components/card"
 const COLORS = ["#EF4444", "#F59E0B", "#22C55E"]
 
 export default function DashboardPage() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
+
+  const userEmail = session?.user?.email
 
   const [totalEmisi, setTotalEmisi] = useState(0)
   const [monthlyEmissionData, setMonthlyEmissionData] = useState<any[]>([])
   const [categoryEmissionData, setCategoryEmissionData] = useState<any[]>([])
 
+  // proteksi
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login")
   }, [status, router])
 
+  // fetch dashboard per user
   useEffect(() => {
-    if (status !== "authenticated") return
+    if (status !== "authenticated" || !userEmail) return
 
     const fetchDashboard = async () => {
-      const res = await fetch("/api/dashboard") 
-      if (!res.ok) return
+      try {
+        const res = await fetch("/api/dashboard", {
+          credentials: "include",
+        })
+        if (!res.ok) return
 
-      const data = await res.json()
-      setTotalEmisi(data.totalEmisi || 0)
-      setMonthlyEmissionData(data.monthlyEmissionData || [])
-      setCategoryEmissionData(data.categoryEmissionData || [])
+        const data = await res.json()
+        setTotalEmisi(data.totalEmisi || 0)
+        setMonthlyEmissionData(data.monthlyEmissionData || [])
+        setCategoryEmissionData(data.categoryEmissionData || [])
+      } catch (e) {
+        console.error(e)
+      }
     }
 
     fetchDashboard()
-  }, [status])
+  }, [status, userEmail])
 
   if (status === "loading") return <div className="p-6">Loading...</div>
   if (status === "unauthenticated") return null
@@ -59,7 +69,6 @@ export default function DashboardPage() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-
           <Card className="rounded-3xl p-6">
             <h3 className="text-sm mb-2">Total Emisi Bulan Ini</h3>
             <div className="text-4xl font-bold text-blue-600">
@@ -99,7 +108,6 @@ export default function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           </Card>
-
         </div>
       </main>
     </div>
