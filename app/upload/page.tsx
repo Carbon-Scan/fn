@@ -40,10 +40,10 @@ export default function UploadPage() {
     if (!file) return alert("Pilih file dulu")
     setLoading(true)
 
-    const form = new FormData()
-    form.append("file", file)
-
     try {
+      const form = new FormData()
+      form.append("file", file)
+
       const res = await fetch(`${HF_API}/predict-carbon`, {
         method: "POST",
         body: form,
@@ -83,12 +83,18 @@ export default function UploadPage() {
       const calcData = await calc.json()
       setResult(calcData)
 
-      // SIMPAN KE DATABASE (PASTI MASUK)
-      await fetch("https://backend-mio8188gg-deliaayunandhitapratama21s-projects.vercel.app/api/emission", {
+      // === SIMPAN KE BACKEND (PAKAI ENV) ===
+      const API = process.env.NEXT_PUBLIC_API_URL
+      if (!API) {
+        alert("NEXT_PUBLIC_API_URL belum diset")
+        return
+      }
+
+      await fetch(`${API}/api/emission`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: "demo@user.com",
+          userEmail: "demo@user.com", // ganti pakai email user login kalau sudah
           total_karbon: calcData.total_karbon,
           detail: calcData.detail,
         }),
@@ -106,7 +112,6 @@ export default function UploadPage() {
 
       <main className="flex-1 p-4">
         <div className="max-w-2xl mx-auto space-y-6">
-
           <Card className="p-6 text-center border-dashed border-2">
             <input
               ref={fileRef}
