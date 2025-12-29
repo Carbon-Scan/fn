@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { Upload, Cloud, Calculator } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 import TopBar from "@/components/top-bar"
 import Card from "@/components/card"
@@ -17,6 +18,7 @@ type Product = {
 }
 
 export default function UploadPage() {
+  const { data: session } = useSession()
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
@@ -35,7 +37,6 @@ export default function UploadPage() {
     setResult(null)
   }
 
-  // STEP 1: OCR + DETEKSI PRODUK
   const processReceipt = async () => {
     if (!file) return alert("Pilih file dulu")
     setLoading(true)
@@ -64,16 +65,26 @@ export default function UploadPage() {
     }
   }
 
-  // STEP 2: HITUNG + SIMPAN KE DB
   const calculateAndSave = async () => {
+    if (!session?.user?.email) {
+      alert("User belum login")
+      return
+    }
+
     if (products.some((p) => p.berat_kg <= 0)) {
-      return alert("Isi semua berat produk")
+      alert("Isi semua berat produk")
+      return
+    }
+
+    const API = process.env.NEXT_PUBLIC_API_URL
+    if (!API) {
+      alert("NEXT_PUBLIC_API_URL belum diset")
+      return
     }
 
     setLoading(true)
 
     try {
-      // hitung karbon
       const calc = await fetch(`${HF_API}/calculate-carbon`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,23 +94,16 @@ export default function UploadPage() {
       const calcData = await calc.json()
       setResult(calcData)
 
-      // === SIMPAN KE BACKEND (PAKAI ENV) ===
-      const API = process.env.NEXT_PUBLIC_API_URL
-      if (!API) {
-        alert("NEXT_PUBLIC_API_URL belum diset")
-        return
-      }
-
       await fetch(`${API}/api/emission`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: "demo@user.com", // ganti pakai email user login kalau sudah
+          userEmail: session.user.email,
           total_karbon: calcData.total_karbon,
           detail: calcData.detail,
         }),
       })
-    } catch (e) {
+    } catch {
       alert("Gagal menyimpan data")
     } finally {
       setLoading(false)
