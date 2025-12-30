@@ -8,20 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String   @unique
-  password      String? 
-  image         String?   // ⬅️ WAJIB UNTUK NEXTAUTH
-  avatar        String?   // ⬅️ OPTIONAL (kalau mau pakai sendiri)
+  email         String    @unique
+  password      String?
+  image         String? // ⬅️ WAJIB UNTUK NEXTAUTH
+  avatar        String? // ⬅️ OPTIONAL (kalau mau pakai sendiri)
   provider      String?
   emailVerified DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
+
+  emissions Emission[]
 }
-
 
 model Account {
   id                String  @id @default(cuid())
@@ -57,4 +58,14 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Emission {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  totalKarbon Float
+  detail      Json
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

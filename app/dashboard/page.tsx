@@ -23,29 +23,30 @@ import Card from "@/components/card"
 const COLORS = ["#EF4444", "#F59E0B", "#22C55E"]
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
-
-  const userEmail = session?.user?.email
 
   const [totalEmisi, setTotalEmisi] = useState(0)
   const [monthlyEmissionData, setMonthlyEmissionData] = useState<any[]>([])
   const [categoryEmissionData, setCategoryEmissionData] = useState<any[]>([])
 
-  // proteksi
+  // proteksi login
   useEffect(() => {
-    if (status === "unauthenticated") router.replace("/login")
+    if (status === "unauthenticated") {
+      router.replace("/login")
+    }
   }, [status, router])
 
-  // fetch dashboard per user
+  // fetch dashboard (SESSION BASED – USERID DI BACKEND)
   useEffect(() => {
-    if (status !== "authenticated" || !userEmail) return
+    if (status !== "authenticated") return
 
     const fetchDashboard = async () => {
       try {
         const res = await fetch("/api/dashboard", {
           credentials: "include",
         })
+
         if (!res.ok) return
 
         const data = await res.json()
@@ -58,7 +59,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboard()
-  }, [status, userEmail])
+  }, [status])
 
   if (status === "loading") return <div className="p-6">Loading...</div>
   if (status === "unauthenticated") return null
