@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!
-
 export default function RegisterPage() {
   const router = useRouter()
 
@@ -25,7 +23,7 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -34,7 +32,7 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || "Register gagal")
+        throw new Error(data.message || "Register gagal")
       }
 
       alert("Register berhasil, silakan login")
