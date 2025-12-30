@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -16,30 +18,23 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [agree, setAgree] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
 
     try {
-      const res = await fetch("/api/register", {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
 
-      const text = await res.text()
-
-      let data: any
-      try {
-        data = JSON.parse(text)
-      } catch {
-        throw new Error(text || "Response backend bukan JSON")
-      }
+      const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message || "Register gagal")
+        throw new Error(data.error || "Register gagal")
       }
 
       alert("Register berhasil, silakan login")
@@ -47,7 +42,7 @@ export default function RegisterPage() {
     } catch (err: any) {
       alert(err.message || "Terjadi kesalahan")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -65,6 +60,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="rounded-xl"
           />
 
           <div className="relative">
@@ -74,30 +70,37 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="pr-12"
+              className="rounded-xl pr-12"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
             >
-              {showPassword ? <EyeOff /> : <Eye />}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <Checkbox
+              checked={agree}
+              onCheckedChange={(v) => setAgree(v === true)}
+            />
             Saya setuju dengan syarat & ketentuan
           </label>
 
-          <Button type="submit" disabled={!agree || loading} className="w-full">
-            {loading ? "Memproses..." : "Daftar"}
+          <Button
+            type="submit"
+            disabled={!agree || isLoading}
+            className="w-full rounded-xl"
+          >
+            {isLoading ? "Memproses..." : "Daftar"}
           </Button>
         </form>
 
-        <p className="text-center text-sm mt-6">
+        <p className="text-center text-sm text-gray-600 mt-6">
           Sudah punya akun?{" "}
-          <Link href="/login" className="underline text-emerald-600">
+          <Link href="/login" className="text-emerald-600 font-medium underline">
             Login
           </Link>
         </p>
