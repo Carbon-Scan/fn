@@ -18,7 +18,7 @@ type Product = {
 }
 
 export default function UploadPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
@@ -26,6 +26,7 @@ export default function UploadPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [result, setResult] = useState<any>(null)
 
+  /* ================= PICK FILE ================= */
   const pickFile = (f?: File) => {
     if (!f) return
     if (!ALLOWED_TYPES.includes(f.type)) {
@@ -37,6 +38,7 @@ export default function UploadPage() {
     setResult(null)
   }
 
+  /* ================= OCR / DETECT ================= */
   const processReceipt = async () => {
     if (!file) return alert("Pilih file dulu")
     setLoading(true)
@@ -50,6 +52,11 @@ export default function UploadPage() {
         body: form,
       })
 
+      if (!res.ok) {
+        const t = await res.text()
+        throw new Error(t)
+      }
+
       const data = await res.json()
 
       setProducts(
@@ -58,16 +65,18 @@ export default function UploadPage() {
           berat_kg: 0,
         }))
       )
-    } catch {
+    } catch (err: any) {
+      console.error("OCR ERROR:", err)
       alert("Gagal memproses struk")
     } finally {
       setLoading(false)
     }
   }
 
+  /* ================= HITUNG & SIMPAN ================= */
   const calculateAndSave = async () => {
-    if (!session?.user?.email) {
-      alert("User belum login")
+    if (status !== "authenticated" || !session?.user?.email) {
+      alert("User belum login / session tidak valid")
       return
     }
 
@@ -79,39 +88,59 @@ export default function UploadPage() {
     setLoading(true)
 
     try {
-      // 🔹 HITUNG KE HF
-      const calc = await fetch(`${HF_API}/calculate-carbon`, {
+      /* ---- HITUNG KE HF ---- */
+      const calcRes = await fetch(`${HF_API}/calculate-carbon`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: products }),
       })
 
-      const calcData = await calc.json()
+      if (!calcRes.ok) {
+        const t = await calcRes.text()
+        throw new Error("HF ERROR: " + t)
+      }
+
+      const calcData = await calcRes.json()
       setResult(calcData)
 
-      // 🔹 SIMPAN KE DATABASE (SESSION AMAN)
-      await fetch("/api/emission", {
+      /* ---- SIMPAN KE DB (NEXTAUTH SESSION) ---- */
+      const saveRes = await fetch("/api/emission", {
         method: "POST",
-        credentials: "include", // 🔥 KUNCI UTAMA
+        credentials: "include", // 🔥 WAJIB
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           total_karbon: calcData.total_karbon,
           detail: calcData.detail,
         }),
       })
-    } catch {
-      alert("Gagal menyimpan data")
+
+      const saveText = await saveRes.text()
+
+      console.log("💾 SAVE STATUS:", saveRes.status)
+      console.log("💾 SAVE RESPONSE:", saveText)
+
+      if (!saveRes.ok) {
+        alert("❌ GAGAL SIMPAN:\n" + saveText)
+        return
+      }
+
+      alert("✅ Data emisi berhasil disimpan")
+    } catch (err: any) {
+      console.error("SAVE ERROR:", err)
+      alert("Terjadi kesalahan saat hitung / simpan")
     } finally {
       setLoading(false)
     }
   }
 
+  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TopBar />
 
       <main className="flex-1 p-4">
         <div className="max-w-2xl mx-auto space-y-6">
+          {/* UPLOAD */}
           <Card className="p-6 text-center border-dashed border-2">
             <input
               ref={fileRef}
@@ -126,6 +155,7 @@ export default function UploadPage() {
             </Button>
           </Card>
 
+          {/* FILE INFO */}
           {file && (
             <Card className="p-4 flex justify-between items-center">
               <span>{file.name}</span>
@@ -135,6 +165,7 @@ export default function UploadPage() {
             </Card>
           )}
 
+          {/* PRODUK */}
           {products.length > 0 && (
             <Card className="p-5 space-y-3">
               <h3 className="font-bold">Produk</h3>
@@ -165,10 +196,11 @@ export default function UploadPage() {
             </Card>
           )}
 
+          {/* RESULT */}
           {result && (
             <Card className="p-5">
               <p className="font-bold">
-                Total Emisi: {result.total_karbon} CO₂e
+                Total Emisi: {result.total_karbon} kg CO₂e
               </p>
             </Card>
           )}
