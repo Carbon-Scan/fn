@@ -76,15 +76,10 @@ export default function UploadPage() {
       return
     }
 
-    const API = process.env.NEXT_PUBLIC_API_URL
-    if (!API) {
-      alert("NEXT_PUBLIC_API_URL belum diset")
-      return
-    }
-
     setLoading(true)
 
     try {
+      // 🔹 HITUNG KE HF
       const calc = await fetch(`${HF_API}/calculate-carbon`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,11 +89,12 @@ export default function UploadPage() {
       const calcData = await calc.json()
       setResult(calcData)
 
-      await fetch(`${API}/api/emission`, {
+      // 🔹 SIMPAN KE DATABASE (SESSION AMAN)
+      await fetch("/api/emission", {
         method: "POST",
+        credentials: "include", // 🔥 KUNCI UTAMA
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userEmail: session.user.email,
           total_karbon: calcData.total_karbon,
           detail: calcData.detail,
         }),
